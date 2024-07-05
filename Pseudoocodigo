@@ -1,0 +1,176 @@
+Clase Tarjetahabiente:
+    Propiedades:
+        - numero: Cadena
+        - nombre: Cadena
+        - cvc: Cadena
+        - fechaVencimiento: Fecha
+        - saldo: Decimal
+
+    Constructor Tarjetahabiente(numero, nombre, cvc, fechaVencimiento, saldo):
+        Asignar numero, nombre, cvc, fechaVencimiento, saldo a las propiedades correspondientes
+
+Clase CajeroAutomatico:
+    Constantes:
+        - DATOS_ARCHIVO: Cadena = "tarjetahabientes.txt"
+        - COMPROBANTE_ARCHIVO: Cadena = "comprobante.txt"
+
+    Función principal main():
+        tarjetahabientes = cargarDatos()
+
+        Si tarjetahabientes no es nulo:
+            menu(tarjetahabientes)
+
+    Función cargarDatos():
+        archivo = nuevo Archivo con DATOS_ARCHIVO
+
+        Si archivo no existe:
+            Mostrar "El archivo de datos no existe."
+            Retornar nulo
+
+        listaTarjetahabientes = nueva Lista vacía
+
+        Intentar:
+            Abrir reader para leer archivo
+            Mientras haya líneas por leer en reader:
+                Leer línea
+                Separar datos por ","
+                Si hay 5 elementos en datos:
+                    Convertir fechaVencimiento a LocalDate desde datos[3]
+                    Crear nuevo Tarjetahabiente con datos[0], datos[1], datos[2], fechaVencimiento, convertir datos[4] a decimal
+                    Agregar Tarjetahabiente a listaTarjetahabientes
+
+            Retornar listaTarjetahabientes como arreglo de Tarjetahabiente
+
+        Capturar IOException:
+            Mostrar error de lectura
+            Retornar nulo
+
+    Función menu(tarjetahabientes):
+        Mientras no se desee salir:
+            Mostrar opciones de menú
+            Leer opción del usuario
+            Según la opción:
+                Caso "1":
+                    Consultar saldo(tarjetahabientes)
+                Caso "2":
+                    Deposito(tarjetahabientes)
+                Caso "3":
+                    Retiro(tarjetahabientes)
+                Caso "4":
+                    Transferencia(tarjetahabientes)
+                Caso "5":
+                    Establecer salir a verdadero
+                Predeterminado:
+                    Mostrar "Opción no válida."
+
+    Función consultarSaldo(tarjetahabientes, scanner):
+        Leer número de tarjeta
+        Leer cvc
+        Buscar tarjetahabiente en tarjetahabientes por número y cvc
+
+        Si se encuentra tarjetahabiente:
+            Si fechaVencimiento de tarjetahabiente es antes de la fecha actual:
+                Mostrar "Su plástico ha vencido, pase a ventanilla para obtener uno nuevo."
+            Sino:
+                Mostrar "Su saldo actual es: " + saldo de tarjetahabiente
+                Generar comprobante(tarjetahabiente, "Consulta de Saldo")
+                Mostrar "Comprobante generado correctamente."
+        Sino:
+            Mostrar "Tarjetahabiente no encontrado."
+
+    Función deposito(tarjetahabientes, scanner):
+        Leer número de tarjeta
+        Leer cvc
+        Buscar tarjetahabiente en tarjetahabientes por número y cvc
+
+        Si se encuentra tarjetahabiente:
+            Leer monto a depositar
+            Añadir monto a saldo de tarjetahabiente
+            Mostrar "Depósito realizado con éxito."
+            Generar comprobante(tarjetahabiente, "Depósito", monto)
+            Mostrar "Comprobante generado correctamente."
+        Sino:
+            Mostrar "Tarjetahabiente no encontrado."
+
+    Función retiro(tarjetahabientes, scanner):
+        Leer número de tarjeta
+        Leer cvc
+        Buscar tarjetahabiente en tarjetahabientes por número y cvc
+
+        Si se encuentra tarjetahabiente:
+            Leer monto a retirar
+            Si saldo de tarjetahabiente es mayor o igual a monto:
+                Restar monto de saldo de tarjetahabiente
+                Mostrar "Retiro realizado con éxito."
+                Generar comprobante(tarjetahabiente, "Retiro", monto)
+                Mostrar "Comprobante generado correctamente."
+            Sino:
+                Mostrar "Saldo insuficiente."
+        Sino:
+            Mostrar "Tarjetahabiente no encontrado."
+
+    Función transferencia(tarjetahabientes, scanner):
+        Leer número de tarjeta origen
+        Leer cvc
+        Buscar tarjetahabiente de origen en tarjetahabientes por número y cvc
+
+        Si se encuentra tarjetahabiente de origen:
+            Leer número de tarjeta destino
+            Buscar tarjetahabiente de destino en tarjetahabientes por número
+
+            Si se encuentra tarjetahabiente de destino:
+                Leer monto a transferir
+                Si saldo de tarjetahabiente de origen es mayor o igual a monto:
+                    Restar monto de saldo de tarjetahabiente de origen
+                    Sumar monto a saldo de tarjetahabiente de destino
+                    Mostrar "Transferencia realizada con éxito."
+                    Generar comprobante(tarjetahabienteOrigen, "Transferencia", monto, numeroDestino)
+                    Mostrar "Comprobante generado correctamente."
+                Sino:
+                    Mostrar "Saldo insuficiente."
+            Sino:
+                Mostrar "Tarjeta de destino no encontrada."
+        Sino:
+            Mostrar "Tarjetahabiente no encontrado."
+
+    Función buscarTarjetahabiente(tarjetahabientes, numero, cvc):
+        Para cada tarjetahabiente en tarjetahabientes:
+            Si número de tarjeta y cvc coinciden con los proporcionados:
+                Retornar tarjetahabiente
+
+        Retornar nulo
+
+    Función buscarTarjetahabientePorNumero(tarjetahabientes, numero):
+        Para cada tarjetahabiente en tarjetahabientes:
+            Si número de tarjeta coincide con el proporcionado:
+                Retornar tarjetahabiente
+
+        Retornar nulo
+
+    Función generarComprobante(tarjetahabiente, tipoOperacion):
+        Llamar generarComprobante(tarjetahabiente, tipoOperacion, 0, nulo, COMPROBANTE_ARCHIVO)
+
+    Función generarComprobante(tarjetahabiente, tipoOperacion, monto):
+        Llamar generarComprobante(tarjetahabiente, tipoOperacion, monto, nulo, COMPROBANTE_ARCHIVO)
+
+    Función generarComprobante(tarjetahabiente, tipoOperacion, monto, cuentaDestino):
+        Llamar generarComprobante(tarjetahabiente, tipoOperacion, monto, cuentaDestino, COMPROBANTE_ARCHIVO)
+
+    Función generarComprobante(tarjetahabiente, tipoOperacion, monto, cuentaDestino, archivo):
+        Intentar:
+            Abrir writer para escribir en archivo (modo añadir)
+
+            Escribir "Comprobante de " + tipoOperacion + "\n"
+            Escribir "Nombre: " + nombre de tarjetahabiente + "\n"
+            Escribir "Número de tarjeta: " + número de tarjetahabiente + "\n"
+            Escribir "Fecha: " + fecha actual + "\n"
+            Si cuentaDestino no es nulo:
+                Escribir "Cuenta destino: " + cuentaDestino + "\n"
+            Escribir "Monto: " + monto + "\n"
+            Escribir "Saldo actual: " + saldo de tarjetahabiente + "\n"
+            Escribir línea en blanco "\n"
+            Mostrar "Comprobante impreso correctamente."
+
+        Capturar IOException:
+            Mostrar "Error al generar el comprobante: " + mensaje de error
+            Mostrar traza del error
