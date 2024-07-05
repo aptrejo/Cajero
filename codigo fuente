@@ -1,0 +1,244 @@
+import java.io.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+class Tarjetahabiente {
+    String numero;
+    String nombre;
+    String cvc;
+    LocalDate fechaVencimiento;
+    double saldo;
+
+    public Tarjetahabiente(String numero, String nombre, String cvc, LocalDate fechaVencimiento, double saldo) {
+        this.numero = numero;
+        this.nombre = nombre;
+        this.cvc = cvc;
+        this.fechaVencimiento = fechaVencimiento;
+        this.saldo = saldo;
+    }
+}
+
+public class CajeroAutomatico {
+
+    static final String DATOS_ARCHIVO = "tarjetahabientes.txt";
+    static final String COMPROBANTE_ARCHIVO = "comprobante.txt";
+
+    public static void main(String[] args) {
+        Tarjetahabiente[] tarjetahabientes = cargarDatos();
+
+        if (tarjetahabientes != null) {
+            menu(tarjetahabientes);
+        }
+    }
+
+    static Tarjetahabiente[] cargarDatos() {
+        File archivo = new File(DATOS_ARCHIVO);
+        if (!archivo.exists()) {
+            System.out.println("El archivo de datos no existe.");
+            return null;
+        }
+
+        List<Tarjetahabiente> listaTarjetahabientes = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(archivo))) {
+            String linea;
+
+            while ((linea = reader.readLine()) != null) {
+                String[] datos = linea.split(",");
+                if (datos.length == 5) {
+                    LocalDate fechaVencimiento = LocalDate.parse(datos[3]);
+                    listaTarjetahabientes.add(new Tarjetahabiente(datos[0], datos[1], datos[2], fechaVencimiento, Double.parseDouble(datos[4])));
+                }
+            }
+
+            return listaTarjetahabientes.toArray(new Tarjetahabiente[0]);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    static void menu(Tarjetahabiente[] tarjetahabientes) {
+        Scanner scanner = new Scanner(System.in);
+        boolean salir = false;
+
+        while (!salir) {
+            System.out.println("1. Consultar Saldo");
+            System.out.println("2. Depósito");
+            System.out.println("3. Retiro");
+            System.out.println("4. Transferencia");
+            System.out.println("5. Salir");
+            System.out.print("Seleccione una opción: ");
+            String opcion = scanner.nextLine();
+
+            switch (opcion) {
+                case "1":
+                    consultarSaldo(tarjetahabientes, scanner);
+                    break;
+                case "2":
+                    deposito(tarjetahabientes, scanner);
+                    break;
+                case "3":
+                    retiro(tarjetahabientes, scanner);
+                    break;
+                case "4":
+                    transferencia(tarjetahabientes, scanner);
+                    break;
+                case "5":
+                    salir = true;
+                    break;
+                default:
+                    System.out.println("Opción no válida.");
+                    break;
+            }
+        }
+        scanner.close();
+    }
+
+    static void consultarSaldo(Tarjetahabiente[] tarjetahabientes, Scanner scanner) {
+        System.out.print("Ingrese su número de tarjeta: ");
+        String numero = scanner.nextLine();
+        System.out.print("Ingrese su CVC: ");
+        String cvc = scanner.nextLine();
+        Tarjetahabiente tarjetahabiente = buscarTarjetahabiente(tarjetahabientes, numero, cvc);
+
+        if (tarjetahabiente != null) {
+            if (tarjetahabiente.fechaVencimiento.isBefore(LocalDate.now())) {
+                System.out.println("Su plástico ha vencido, pase a ventanilla para obtener uno nuevo.");
+            } else {
+                System.out.printf("Su saldo actual es: %.2f\n", tarjetahabiente.saldo);
+                generarComprobante(tarjetahabiente, "Consulta de Saldo");
+                System.out.println("Comprobante generado correctamente.");
+            }
+        } else {
+            System.out.println("Tarjetahabiente no encontrado.");
+        }
+    }
+
+    static void deposito(Tarjetahabiente[] tarjetahabientes, Scanner scanner) {
+        System.out.print("Ingrese su número de tarjeta: ");
+        String numero = scanner.nextLine();
+        System.out.print("Ingrese su CVC: ");
+        String cvc = scanner.nextLine();
+        Tarjetahabiente tarjetahabiente = buscarTarjetahabiente(tarjetahabientes, numero, cvc);
+
+        if (tarjetahabiente != null) {
+            System.out.print("Ingrese el monto a depositar: ");
+            double monto = Double.parseDouble(scanner.nextLine());
+            tarjetahabiente.saldo += monto;
+            System.out.println("Depósito realizado con éxito.");
+            generarComprobante(tarjetahabiente, "Depósito", monto);
+            System.out.println("Comprobante generado correctamente.");
+        } else {
+            System.out.println("Tarjetahabiente no encontrado.");
+        }
+    }
+
+    static void retiro(Tarjetahabiente[] tarjetahabientes, Scanner scanner) {
+        System.out.print("Ingrese su número de tarjeta: ");
+        String numero = scanner.nextLine();
+        System.out.print("Ingrese su CVC: ");
+        String cvc = scanner.nextLine();
+        Tarjetahabiente tarjetahabiente = buscarTarjetahabiente(tarjetahabientes, numero, cvc);
+
+        if (tarjetahabiente != null) {
+            System.out.print("Ingrese el monto a retirar: ");
+            double monto = Double.parseDouble(scanner.nextLine());
+
+            if (tarjetahabiente.saldo >= monto) {
+                tarjetahabiente.saldo -= monto;
+                System.out.println("Retiro realizado con éxito.");
+                generarComprobante(tarjetahabiente, "Retiro", monto);
+                System.out.println("Comprobante generado correctamente.");
+            } else {
+                System.out.println("Saldo insuficiente.");
+            }
+        } else {
+            System.out.println("Tarjetahabiente no encontrado.");
+        }
+    }
+
+    static void transferencia(Tarjetahabiente[] tarjetahabientes, Scanner scanner) {
+        System.out.print("Ingrese su número de tarjeta: ");
+        String numeroOrigen = scanner.nextLine();
+        System.out.print("Ingrese su CVC: ");
+        String cvc = scanner.nextLine();
+        Tarjetahabiente tarjetahabienteOrigen = buscarTarjetahabiente(tarjetahabientes, numeroOrigen, cvc);
+
+        if (tarjetahabienteOrigen != null) {
+            System.out.print("Ingrese el número de tarjeta destino: ");
+            String numeroDestino = scanner.nextLine();
+            Tarjetahabiente tarjetahabienteDestino = buscarTarjetahabientePorNumero(tarjetahabientes, numeroDestino);
+
+            if (tarjetahabienteDestino != null) {
+                System.out.print("Ingrese el monto a transferir: ");
+                double monto = Double.parseDouble(scanner.nextLine());
+
+                if (tarjetahabienteOrigen.saldo >= monto) {
+                    tarjetahabienteOrigen.saldo -= monto;
+                    tarjetahabienteDestino.saldo += monto;
+                    System.out.println("Transferencia realizada con éxito.");
+                    generarComprobante(tarjetahabienteOrigen, "Transferencia", monto, tarjetahabienteDestino.numero);
+                    System.out.println("Comprobante generado correctamente.");
+                } else {
+                    System.out.println("Saldo insuficiente.");
+                }
+            } else {
+                System.out.println("Tarjeta de destino no encontrada.");
+            }
+        } else {
+            System.out.println("Tarjetahabiente no encontrado.");
+        }
+    }
+
+    static Tarjetahabiente buscarTarjetahabiente(Tarjetahabiente[] tarjetahabientes, String numero, String cvc) {
+        for (Tarjetahabiente t : tarjetahabientes) {
+            if (t.numero.equals(numero) && t.cvc.equals(cvc)) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    static Tarjetahabiente buscarTarjetahabientePorNumero(Tarjetahabiente[] tarjetahabientes, String numero) {
+        for (Tarjetahabiente t : tarjetahabientes) {
+            if (t.numero.equals(numero)) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    static void generarComprobante(Tarjetahabiente tarjetahabiente, String tipoOperacion) {
+        generarComprobante(tarjetahabiente, tipoOperacion, 0, null, COMPROBANTE_ARCHIVO);
+    }
+
+    static void generarComprobante(Tarjetahabiente tarjetahabiente, String tipoOperacion, double monto) {
+        generarComprobante(tarjetahabiente, tipoOperacion, monto, null, COMPROBANTE_ARCHIVO);
+    }
+
+    static void generarComprobante(Tarjetahabiente tarjetahabiente, String tipoOperacion, double monto, String cuentaDestino) {
+        generarComprobante(tarjetahabiente, tipoOperacion, monto, cuentaDestino, COMPROBANTE_ARCHIVO);
+    }
+
+    static void generarComprobante(Tarjetahabiente tarjetahabiente, String tipoOperacion, double monto, String cuentaDestino, String archivo) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(archivo, true))) {
+            writer.write("Comprobante de " + tipoOperacion + "\n");
+            writer.write("Nombre: " + tarjetahabiente.nombre + "\n");
+            writer.write("Número de tarjeta: " + tarjetahabiente.numero + "\n");
+            writer.write("Fecha: " + LocalDate.now() + "\n");
+            if (cuentaDestino != null) {
+                writer.write("Cuenta destino: " + cuentaDestino + "\n");
+            }
+            writer.write("Monto: " + monto + "\n");
+            writer.write("Saldo actual: " + tarjetahabiente.saldo + "\n");
+            writer.write("\n");
+            System.out.println("Comprobante impreso correctamente.");
+        } catch (IOException e) {
+            System.err.println("Error al generar el comprobante: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}
